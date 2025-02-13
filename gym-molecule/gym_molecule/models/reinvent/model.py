@@ -15,6 +15,20 @@ import torch.nn.functional as tnnf
 from .utils import Variable, NLLLoss
 from .vocabulary import Vocabulary
 
+#! TEMP
+import sys
+import gym_molecule.models as gm_models
+import gym_molecule.models.reinvent as gm_reinvent
+import gym_molecule.models.reinvent.model as gm_model
+import gym_molecule.models.reinvent.utils as gm_utils
+import gym_molecule.models.reinvent.vocabulary as gm_vocab
+
+# Trick Python into thinking 'models' is a top-level package
+sys.modules["models"] = gm_models
+sys.modules["models.reinvent"] = gm_reinvent
+sys.modules["models.reinvent.model"] = gm_model
+sys.modules["models.reinvent.utils"] = gm_utils
+sys.modules["models.reinvent.vocabulary"] = gm_vocab
 
 class MultiGRU(tnn.Module):
     """
@@ -114,16 +128,21 @@ class Model:
 
     @classmethod
     def load_from_file(cls, file_path: str):
+        print("*" * 50)
+        print("Trying to load")
+        print("*" * 50)
         """
         Loads a model from a single file
         :param file: filpath as string
         :return: new instance of the RNN or None if it was not possible to load
         """
+        
         if torch.cuda.is_available():
             save_dict = torch.load(file_path)
         else:
             save_dict = torch.load(
                 file_path, map_location=lambda storage, loc: storage)
+
         model = Model(save_dict['vocabulary'],
                       initialweights=save_dict['initialweights'], rnn_params=save_dict.get("rnn_params", {}))
         model.rnn.load_state_dict(save_dict["currentweights"])

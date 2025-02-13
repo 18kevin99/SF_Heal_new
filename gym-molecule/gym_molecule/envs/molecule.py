@@ -99,7 +99,7 @@ def load_conditional(type='low'):
 class MoleculeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
     def __init__(self):
-        self._model = mm.Model.load_from_file('../kev_models/model_zinc_250.78')
+        self._model = mm.Model.load_from_file('D:/Arizona_State_University/Research/Kevin/SF_Heal_new/gym-molecule/gym_molecule/kev_model/model_zinc_250.78')
         pass
 
     def init(self,data_type='zinc',logp_ratio=1, qed_ratio=1,sa_ratio=1, reward_step_total=1,is_normalize=0,reward_type='gan',reward_target=0.5,has_scaffold=False,has_feature=False,is_conditional=False,conditional='low',max_action=128,min_action=20,force_final=False):
@@ -285,7 +285,6 @@ class MoleculeEnv(gym.Env):
                     reward_valid -= 1
                     flag_zinc_molecule_filter = False
 
-
                 # property rewards
                 try:
                     # 1. QED reward. Can have values [0, 1]. Higher the better
@@ -333,8 +332,13 @@ class MoleculeEnv(gym.Env):
 
 
 
-                except: # if any property reward error, reset all
+                except Exception as e: # if any property reward error, reset all
                     print('reward error')
+                    print("*" * 50)
+                    print(e)
+                    print("*" * 50)
+
+                    self._model.likelihood(None)
 
             new = True # end of episode
             if self.force_final:
