@@ -4,6 +4,7 @@ import numpy as np
 from rdkit import Chem  # TODO(Bowen): remove and just use AllChem
 from rdkit.Chem import AllChem
 from rdkit.Chem.Descriptors import qed, MolLogP
+from rdkit import RDLogger
 from rdkit.Chem import rdMolDescriptors
 from rdkit.Chem.Lipinski import NumHAcceptors, NumHDonors
 from rdkit.Chem.FilterCatalog import FilterCatalogParams, FilterCatalog
@@ -22,6 +23,10 @@ from contextlib import contextmanager
 import sys, os
 
 import gym_molecule.models.reinvent.model as mm
+
+lg = RDLogger.logger()
+
+lg.setLevel(RDLogger.CRITICAL)
 
 # block std out
 @contextmanager
@@ -99,7 +104,7 @@ def load_conditional(type='low'):
 class MoleculeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
     def __init__(self):
-        self._model = mm.Model.load_from_file('../kev_models/model_zinc_250.78')
+        self._model = mm.Model.load_from_file('/home/local/ASURITE/kcoutinh/kevin_phd/kev_GNN/GNN_RL/rl_graph_generation/gym-molecule/gym_molecule/kev_models/model_zinc_250.78')
         pass
 
     def init(self,data_type='zinc',logp_ratio=1, qed_ratio=1,sa_ratio=1, reward_step_total=1,is_normalize=0,reward_type='gan',reward_target=0.5,has_scaffold=False,has_feature=False,is_conditional=False,conditional='low',max_action=128,min_action=20,force_final=False):
@@ -271,11 +276,19 @@ class MoleculeEnv(gym.Env):
 
             if not self.check_chemical_validity():
                 reward_valid -= 5
+                print(reward_valid)
+                print("exiting")
+                exit()
             else:
+                #print(self.check_chemical_validity())
                 # final mol object where any radical electrons are changed to bonds to hydrogen
                 final_mol = self.get_final_mol()
                 s = Chem.MolToSmiles(final_mol, isomericSmiles=True)
+                #print(s)
                 final_mol = Chem.MolFromSmiles(s)
+                '''print("*" * 60)
+                print(final_mol.size())
+                print("*" * 60)'''
 
                 # mol filters with negative rewards
                 if not steric_strain_filter(final_mol):  # passes 3D conversion, no excessive strain
@@ -285,6 +298,10 @@ class MoleculeEnv(gym.Env):
                     reward_valid -= 1
                     flag_zinc_molecule_filter = False
 
+                print("*" * 50)
+                #print('reward error')
+                print(self.reward_type)
+                print("*" * 50)
 
                 # property rewards
                 try:
@@ -295,19 +312,28 @@ class MoleculeEnv(gym.Env):
                     reward_sa += (sa + 10) / (10 - 1) * self.sa_ratio
                     # 3. Logp reward. Higher the better
                     # 4. HBA reward. Higher the better
-                    reward_hba += NumHAcceptor(final_mol) * 1
+                    reward_hba += NumHAcceptors(final_mol) * 1
                     # 5. HBD reward. Higher the better
-                    reward_hbd += NumHDonor(final_mol) * 1
+                    reward_hbd += NumHDonors(final_mol) * 1
                     # reward_logp += MolLogP(self.mol)/10 * self.logp_ratio
                     reward_logp += reward_penalized_log_p(final_mol) * self.logp_ratio
                     if self.reward_type == 'logppen':
                         reward_final += reward_penalized_log_p(final_mol)/3
                     elif self.reward_type == 'LLhood':
-                        log_p = self._model.likelihood(None)
-                    elif self.reward_type == 'HBA_target':
+                        temp_sml = Chem.MolToSmiles(final_mol, isomericSmiles=True) 
+                        temp_rw = self._model.likelihood(temp_sml)
+                        #print(temp_sml)
+                        reward_final += temp_rw.item()
+                        #exit()
+                    elif self.reward_type == 'HBA_target_1':
                         # reward_final += reward_target(final_mol,target=self.reward_target,ratio=0.5,val_max=2,val_min=-2,func=MolLogP)
                         # reward_final += reward_target_logp(final_mol,target=self.reward_target)
-                        reward_final += (reward_target_new(final_mol,Chem.rdMolDescriptors.CalcNumLipinskiHBA ,x_start=self.reward_target, x_mid=self.reward_target+0.25)* 0.1) - (reward_target_new2(final_mol,Chem.rdMolDescriptors.CalcNumAromaticCarbocycles, x_start=self.reward_target,  x_mid=self.reward_target)* 0.1) + (reward_target_molecule_similarity(final_mol, upy_mol)*0.01)  
+                        #reward_final += (reward_target_new(final_mol,Chem.rdMolDescriptors.CalcNumLipinskiHBA ,x_start=self.reward_target, x_mid=self.reward_target+0.25)* 0.1) + (reward_target_new2(final_mol,Chem.rdMolDescriptors.CalcNumAromaticCarbocycles, x_start=self.reward_target,  x_mid=self.reward_target)* 0.1) #+ (reward_target_molecule_similarity(final_mol, upy_mol)*0.01)  
+                        reward_final += (reward_target_new(final_mol,Chem.rdMolDescriptors.CalcNumLipinskiHBA) )# + (reward_target_new2(final_mol,Chem.rdMolDescriptors.CalcNumAromaticCarbocycles))
+                    elif self.reward_type == 'HBA_target_2':
+                        reward_final += (reward_target_new(final_mol,Chem.rdMolDescriptors.CalcNumLipinskiHBA)* 0.1) + (reward_target_new2(final_mol,Chem.rdMolDescriptors.CalcNumAromaticCarbocycles, x_start=self.reward_target,  x_mid=self.reward_target+1)* 0.1) #+ (reward_target_molecule_similarity(final_mol, upy_mol)*0.01) 
+                    elif self.reward_type == 'HBA_target_3':
+                        reward_final += (reward_target_new(final_mol,Chem.rdMolDescriptors.CalcNumLipinskiHBA)* 0.3) + (reward_target_new2(final_mol,Chem.rdMolDescriptors.CalcNumAromaticCarbocycles, x_start=self.reward_target,  x_mid=self.reward_target+1)* 0.3) + (reward_target_molecule_similarity(final_mol, upy_mol)*0.1) 
                     elif self.reward_type == 'HBA_logP':
                         reward_final += (reward_hba*1.5 + reward_logp*0.5)
                     elif self.reward_type == 'HBA_HBD':
@@ -333,8 +359,11 @@ class MoleculeEnv(gym.Env):
 
 
 
-                except: # if any property reward error, reset all
+                except Exception as e: # if any property reward error, reset all
+                    print("*" * 50)
                     print('reward error')
+                    print(e)
+                    print("*" * 50)
 
             new = True # end of episode
             if self.force_final:
@@ -463,6 +492,7 @@ class MoleculeEnv(gym.Env):
         :return: True if chemically valid, False otherwise
         """
         s = Chem.MolToSmiles(self.mol, isomericSmiles=True)
+        #print(s)
         m = Chem.MolFromSmiles(s)  # implicitly performs sanitization
         if m:
             return True
@@ -1275,12 +1305,12 @@ def reward_target(mol, target, ratio, val_max, val_min, func):
     reward = max(-1*np.abs((x-target)/ratio) + val_max,val_min)
     return reward
 
-def reward_target_new(mol, func,r_max1=16,r_max2=10,r_mid=8,r_min=4,x_start=500, x_mid=525):
+def reward_target_new(mol, func,r_max1=16,r_max2=10,r_mid=8,r_min=4,x_start=2, x_mid=9):
     x = func(mol)
     return max((r_max1-r_mid)/(x_start-x_mid)*np.abs(x-x_mid)+r_max1, (r_max2-r_mid)/(x_start-x_mid)*np.abs(x-x_mid)+r_max2,r_min)
 
 
-def reward_target_new2(mol, func,r_max1=2,r_max2=2,r_mid=1,r_min=1,x_start=50, x_mid=55):
+def reward_target_new2(mol, func,r_max1=3,r_max2=3,r_mid=2,r_min=1,x_start=1, x_mid=2):
     x = func(mol)
     return max((r_max1-r_mid)/(x_start-x_mid)*np.abs(x-x_mid)+r_max1, (r_max2-r_mid)/(x_start-x_mid)*np.abs(x-x_mid)+r_max2,r_min)
 

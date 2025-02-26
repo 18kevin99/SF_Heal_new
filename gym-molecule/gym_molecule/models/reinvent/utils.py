@@ -7,8 +7,8 @@ import torch
 def Variable(tensor):
     if isinstance(tensor, np.ndarray):
         tensor = torch.from_numpy(tensor)
-    if torch.cuda.is_available():
-        return torch.autograd.Variable(tensor).cuda()
+    #if torch.cuda.is_available():
+        #return torch.autograd.Variable(tensor).cuda()
     return torch.autograd.Variable(tensor)
 
 
@@ -22,10 +22,10 @@ def NLLLoss(inputs, targets):
     :return: loss : (batch_size) *Loss for each example*.
     """
 
-    if torch.cuda.is_available():
-        target_expanded = torch.zeros(inputs.size()).cuda()
-    else:
-        target_expanded = torch.zeros(inputs.size())
+    # if torch.cuda.is_available():
+    #     target_expanded = torch.zeros(inputs.size()).cuda()
+    # else:
+    target_expanded = torch.zeros(inputs.size())
 
     target_expanded.scatter_(1, targets.contiguous().view(-1, 1).data, 1.0)
     loss = Variable(target_expanded) * inputs

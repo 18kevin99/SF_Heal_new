@@ -14,6 +14,20 @@ import torch.nn.functional as tnnf
 
 from .utils import Variable, NLLLoss
 from .vocabulary import Vocabulary
+from IPython import embed
+
+import sys
+import gym_molecule.models as gm_models
+import gym_molecule.models.reinvent as gm_reinvent
+import gym_molecule.models.reinvent.model as gm_model
+import gym_molecule.models.reinvent.utils as gm_utils
+import gym_molecule.models.reinvent.vocabulary as gm_vocab
+# Trick Python into thinking 'models' is a top-level package
+sys.modules["models"] = gm_models
+sys.modules["models.reinvent"] = gm_reinvent
+sys.modules["models.reinvent.model"] = gm_model
+sys.modules["models.reinvent.utils"] = gm_utils
+sys.modules["models.reinvent.vocabulary"] = gm_vocab
 
 
 class MultiGRU(tnn.Module):
@@ -68,8 +82,12 @@ class MultiGRU(tnn.Module):
 
         hidden_state_out = Variable(torch.zeros(hidden_state.size()))
         for i, gru_layer in enumerate(self._gru_layers):
+            # print("\n\n input vector")
+            # print(input_vector.size())
+            # print(hidden_state.size())
+            # print("\n\n hidden state")
             input_vector = hidden_state_out[i] = gru_layer(
-                input_vector, hidden_state[i])
+                input_vector, hidden_state[i].cpu())
 
         input_vector = self._other_layers["linear"](input_vector)
         return input_vector, hidden_state_out
@@ -104,8 +122,8 @@ class Model:
 
         self.rnn = MultiGRU(self.voc.vocab_size, **rnn_params)
 
-        if torch.cuda.is_available():
-            self.rnn.cuda()
+        #if torch.cuda.is_available():
+            #self.rnn.cuda()
         if initialweights:
             self.initialweights = copy.deepcopy(initialweights)
             self.rnn.load_state_dict(copy.deepcopy(initialweights))
@@ -148,7 +166,7 @@ class Model:
         """
         self.initialweights = copy.deepcopy(self.rnn.state_dict())
 
-    def likelihood(self, target, temperature=1.0):
+    '''def likelihood(self, input_string, temperature=1.0):
         """
         Retrieves the likelihood of a given sequence. Used in training.
 
@@ -158,27 +176,97 @@ class Model:
                             Large values result in random predictions at each step.
         :return:  (batch_size) Log likelihood for each example.
         """
-        print("I am here")
-        return
+        # Convert string to tensor using vocabulary mapping
+        #tokenized = self.voc.tokenize(smiles=input_string)
+        #print(tokenized)
+        vocab = {token: idx for idx, token in enumerate(sorted(set(tokenized)))}
+        token_indices = [vocab[token] for token in tokenized]
+        target = torch.tensor(token_indices, dtype=torch.long).unsqueeze(0) 
+        #print(target)
         batch_size, seq_length = target.size()
-        start_token = Variable(torch.zeros(batch_size, 1).long())
-        start_token[:] = self.voc.vocab["^"]
-        input_vector = torch.cat((start_token, target[:, :-1]), 1)
+        #print(self.voc.vocab["^"])
+        start_token = torch.tensor([[self.voc.vocab["^"]]], dtype=torch.long)
+        input_vector = torch.cat((start_token, target[:, :-1]), dim=1)
         hidden_state = None
-        unfinished = torch.ones_like(start_token, dtype=torch.uint8)
+        #unfinished = torch.ones(1, 1, dtype=torch.uint8)
+        log_prob_sum = 0.0
+        
+        try:
+            #i =0
+            for step in range(seq_length):
+                #if i = 2:
+                    #break
+                print("+"*50)
+                print("Corresponding token:", token_str)
+                print("+"*50)
+                logits, hidden_state = self.rnn(input_vector[:, step], hidden_state)
+                logits = logits / temperature
+                log_prob = tnnf.log_softmax(logits, dim=1)
+                log_prob_step = log_prob[0, target[0, step]]  # Get log-probability of the actual target character
+                log_prob_sum += log_prob_step.item()
 
+                eos_sampled = (input_vector[:, step] == self.voc.vocab['$']).unsqueeze(1)
+                unfinished = torch.eq(unfinished - eos_sampled, 1)
+                if torch.sum(unfinished) == 0:
+                    break
+                i+=1
+        
+        except Exception as e:
+            print("*"*50)
+            print(e)
+            print("*"*50)
+
+        return log_prob_sum'''
+
+    def likelihood(self, input_string, temperature=1.0):
+        """
+        Retrieves the likelihood of a given sequence. Used in training.
+
+        :param target: (batch_size * sequence_length) A batch of sequences
+        :param temperature: Factor by which which the logits are dived. Small numbers make the model more confident on
+                            each position, but also more conservative.
+                            Large values result in random predictions at each step.
+        :return:  (batch_size) Log likelihood for each example.
+        """
+        batch_size = 1
+        input_string = "^" + input_string
+        input_string = self.voc.tokenize(smiles=input_string)
+        #print(input_string)
+        seq_length = len(input_string)
+        # start_token = Variable(torch.zeros(batch_size).long())
+        # start_token[:] = self.voc.vocab["^"]
+        # start_token = start_token.cpu()
+        hidden_state = None
+        #input_vector = start_token
+        #sequences = []
         log_probs = Variable(torch.zeros(batch_size))
-        for step in range(seq_length):
-            logits, hidden_state = self.rnn(input_vector[:, step], hidden_state)
-            logits = logits / temperature
-            log_prob = tnnf.log_softmax(logits, dim=1)
-            log_prob = log_prob * unfinished.float()
-            log_probs += NLLLoss(log_prob, target[:, step])
-
-            eos_sampled = (input_vector[:, step] == self.voc.vocab['$']).unsqueeze(1)
-            unfinished = torch.eq(unfinished - eos_sampled, 1)
-            if torch.sum(unfinished) == 0:
-                break
+        #print(self.voc.vocab)
+        
+        '''print("+"*50)
+        print(input_vector, type(input_vector))
+        print("+"*50)'''
+        
+        try:
+            for step in range(seq_length):
+                if input_string[step]=="$":
+                    print(input_string[step])
+                    continue
+                new_token_value = self.voc.vocab[input_string[step]]
+                #print(new_token_value)
+                new_token_tensor = torch.tensor([new_token_value], dtype=torch.long)
+                #print(new_token_tensor.size())
+                logits, hidden_state = self.rnn(new_token_tensor.cpu(), hidden_state)
+                #print(logits.size(), hidden_state.size())
+                logits = logits / temperature
+                log_prob = tnnf.log_softmax(logits, dim=1)
+                inc_token = torch.tensor(self.voc.vocab[input_string[step+1]])
+                log_probs += NLLLoss(log_prob, inc_token)
+        
+        except Exception as e:
+            #log_prob_sum = -50
+            print("*"*50)
+            print(e)
+            print("*"*50)
 
         return log_probs
 

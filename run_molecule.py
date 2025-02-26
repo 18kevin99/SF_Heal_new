@@ -59,8 +59,8 @@ def molecule_arg_parser():
                         default='molecule')
     parser.add_argument('--seed', help='RNG seed', type=int, default=777)
     parser.add_argument('--num_steps', type=int, default=int(5e7))
-    parser.add_argument('--name', type=str, default='test_conditional')
-    parser.add_argument('--name_load', type=str, default='0new_concatno_mean_layer3_expert1500')
+    parser.add_argument('--name', type=str, default='test_conditional_4')
+    parser.add_argument('--name_load', type=str, default='test_conditional_3')
     # parser.add_argument('--name_load', type=str, default='test')
     parser.add_argument('--dataset', type=str, default='zinc',help='caveman; grid; ba; zinc; gdb')
     parser.add_argument('--dataset_load', type=str, default='zinc')
@@ -82,9 +82,9 @@ def molecule_arg_parser():
     parser.add_argument('--rl_end', type=int, default=int(1e6))
     parser.add_argument('--expert_start', type=int, default=0)
     parser.add_argument('--expert_end', type=int, default=int(1e6))
-    parser.add_argument('--save_every', type=int, default=200)
+    parser.add_argument('--save_every', type=int, default=100)
     parser.add_argument('--load', type=int, default=0)
-    parser.add_argument('--load_step', type=int, default=250)
+    parser.add_argument('--load_step', type=int, default=200)
     # parser.add_argument('--load_step', type=int, default=0)
     parser.add_argument('--curriculum', type=int, default=0)
     parser.add_argument('--curriculum_num', type=int, default=6)
@@ -103,13 +103,13 @@ def molecule_arg_parser():
     parser.add_argument('--gan_type', type=str, default='normal')# normal, recommend, wgan
     parser.add_argument('--gate_sum_d', type=int, default=0)
     parser.add_argument('--mask_null', type=int, default=0)
-    parser.add_argument('--is_conditional', type=int, default=1) # default 0
+    parser.add_argument('--is_conditional', type=int, default=0) # default 0
     parser.add_argument('--conditional', type=str, default='low') # default 0
     parser.add_argument('--max_action', type=int, default=128) # default 0
     parser.add_argument('--min_action', type=int, default=20) # default 0
     parser.add_argument('--bn', type=int, default=0)
     parser.add_argument('--name_full',type=str,default='')
-    parser.add_argument('--name_full_load',type=str,default='')
+    parser.add_argument('--name_full_load',type=str,default='molecule_zinc_test_conditional_3_200')
 
     return parser
 

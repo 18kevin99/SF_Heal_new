@@ -64,7 +64,7 @@ class Vocabulary(object):
         :return: A list of tokens.
         """
         regex = r"(\[[^\[\]]{1,6}\])"
-        smiles = self._replace_halogen(smiles)
+        smiles = self._replace_halogen(string = smiles)
         char_list = re.split(regex, smiles)
         tokenized = []
         for char in char_list:
@@ -124,7 +124,7 @@ class Vocabulary(object):
         self.add_characters(add_chars)
 
     @classmethod
-    def _replace_halogen(cls, string):
+    def _replace_halogen(self, string):
         br_regexp = re.compile('Br')
         cl_regexp = re.compile('Cl')
         string = br_regexp.sub('R', string)
