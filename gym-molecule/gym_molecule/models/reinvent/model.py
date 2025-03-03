@@ -16,6 +16,8 @@ from .utils import Variable, NLLLoss
 from .vocabulary import Vocabulary
 from IPython import embed
 
+import tensorflow.compat.v1 as tf
+
 import sys
 import gym_molecule.models as gm_models
 import gym_molecule.models.reinvent as gm_reinvent
@@ -241,16 +243,19 @@ class Model:
         #sequences = []
         log_probs = Variable(torch.zeros(batch_size))
         #print(self.voc.vocab)
-        
+        pen = 0
         '''print("+"*50)
         print(input_vector, type(input_vector))
         print("+"*50)'''
         
         try:
             for step in range(seq_length):
-                if input_string[step]=="$":
-                    print(input_string[step])
-                    continue
+                
+                if input_string[step]=="$": 
+                    break
+                if input_string[step+1] not in self.voc.vocab.keys():
+                    pen = 1000
+                    break
                 new_token_value = self.voc.vocab[input_string[step]]
                 #print(new_token_value)
                 new_token_tensor = torch.tensor([new_token_value], dtype=torch.long)
@@ -261,14 +266,15 @@ class Model:
                 log_prob = tnnf.log_softmax(logits, dim=1)
                 inc_token = torch.tensor(self.voc.vocab[input_string[step+1]])
                 log_probs += NLLLoss(log_prob, inc_token)
+                #print(pen)
         
         except Exception as e:
-            #log_prob_sum = -50
             print("*"*50)
             print(e)
+            #print(input_string)
             print("*"*50)
 
-        return log_probs
+        return log_probs + pen
 
     def sample_smiles(self, num=128, batch_size=128, temperature=1.0, sequence_length=140):
         """

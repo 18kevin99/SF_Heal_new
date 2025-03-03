@@ -59,12 +59,12 @@ def molecule_arg_parser():
                         default='molecule')
     parser.add_argument('--seed', help='RNG seed', type=int, default=777)
     parser.add_argument('--num_steps', type=int, default=int(5e7))
-    parser.add_argument('--name', type=str, default='test_conditional_4')
-    parser.add_argument('--name_load', type=str, default='test_conditional_3')
+    parser.add_argument('--name', type=str, default='kevin_nll_test3')
+    parser.add_argument('--name_load', type=str, default='test_conditional_4_nll')
     # parser.add_argument('--name_load', type=str, default='test')
     parser.add_argument('--dataset', type=str, default='zinc',help='caveman; grid; ba; zinc; gdb')
     parser.add_argument('--dataset_load', type=str, default='zinc')
-    parser.add_argument('--reward_type', type=str, default='LLhood',help='logppen;logp_target;qed;qedsa;qed_target;mw_target;gan')
+    parser.add_argument('--reward_type', type=str, default='NLLhood',help='logppen;logp_target;qed;qedsa;qed_target;mw_target;gan;NLLhood;HBA_target_')
     parser.add_argument('--reward_target', type=float, default=0.75,help='target reward value')
     parser.add_argument('--logp_ratio', type=float, default=1)
     parser.add_argument('--qed_ratio', type=float, default=1)
@@ -78,13 +78,13 @@ def molecule_arg_parser():
     parser.add_argument('--has_d_step', type=int, default=1)
     parser.add_argument('--has_d_final', type=int, default=1)
     parser.add_argument('--has_ppo', type=int, default=1)
-    parser.add_argument('--rl_start', type=int, default=250)
+    parser.add_argument('--rl_start', type=int, default=75)
     parser.add_argument('--rl_end', type=int, default=int(1e6))
     parser.add_argument('--expert_start', type=int, default=0)
     parser.add_argument('--expert_end', type=int, default=int(1e6))
     parser.add_argument('--save_every', type=int, default=100)
     parser.add_argument('--load', type=int, default=0)
-    parser.add_argument('--load_step', type=int, default=200)
+    parser.add_argument('--load_step', type=int, default=400)
     # parser.add_argument('--load_step', type=int, default=0)
     parser.add_argument('--curriculum', type=int, default=0)
     parser.add_argument('--curriculum_num', type=int, default=6)
@@ -103,13 +103,13 @@ def molecule_arg_parser():
     parser.add_argument('--gan_type', type=str, default='normal')# normal, recommend, wgan
     parser.add_argument('--gate_sum_d', type=int, default=0)
     parser.add_argument('--mask_null', type=int, default=0)
-    parser.add_argument('--is_conditional', type=int, default=0) # default 0
+    parser.add_argument('--is_conditional', type=int, default=1) # default 0
     parser.add_argument('--conditional', type=str, default='low') # default 0
     parser.add_argument('--max_action', type=int, default=128) # default 0
     parser.add_argument('--min_action', type=int, default=20) # default 0
     parser.add_argument('--bn', type=int, default=0)
-    parser.add_argument('--name_full',type=str,default='')
-    parser.add_argument('--name_full_load',type=str,default='molecule_zinc_test_conditional_3_200')
+    parser.add_argument('--name_full',type=str,default='molecule_zinc_test_conditional_4_nll_400')
+    parser.add_argument('--name_full_load',type=str,default='molecule_zinc_test_conditional_4_nll_400')
 
     return parser
 
