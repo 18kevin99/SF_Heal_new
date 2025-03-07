@@ -17,16 +17,12 @@ import random
 import time
 import matplotlib.pyplot as plt
 import csv
-# print("@")
-# print(Chem.CanonSmiles("C[C@@H]1c2c(n(C)c3ccccc23)C2C3[NH+](Cc4onc5c4N1C5=O)C(=N)C(=[ClH])C23O"))
-# print("@")
 from contextlib import contextmanager
 import sys, os
 import tensorflow.compat.v1 as tf
 import gym_molecule.models.reinvent.model as mm
 
 lg = RDLogger.logger()
-
 lg.setLevel(RDLogger.CRITICAL)
 
 # block std out
@@ -105,7 +101,7 @@ def load_conditional(type='low'):
 class MoleculeEnv(gym.Env):
     metadata = {'render.modes': ['human']}
     def __init__(self):
-        self._model = mm.Model.load_from_file('/home/local/ASURITE/kcoutinh/kevin_phd/kev_GNN/GNN_RL/rl_graph_generation/gym-molecule/gym_molecule/kev_models/model_zinc_250.78')
+        self._model = mm.Model.load_from_file('/data/data/kcoutinh/Research/rl_graph_generation/gym-molecule/gym_molecule/kev_models/model_zinc_250.78')
         pass
 
     def init(self,data_type='zinc',logp_ratio=1, qed_ratio=1,sa_ratio=1, reward_step_total=1,is_normalize=0,reward_type='gan',reward_target=0.5,has_scaffold=False,has_feature=False,is_conditional=False,conditional='low',max_action=128,min_action=20,force_final=False):
@@ -188,7 +184,7 @@ class MoleculeEnv(gym.Env):
                                 'gdb13.rand1M.smi.gz')  # gdb 13
         elif data_type=='zinc':
             path = os.path.join(os.path.dirname(cwd), 'dataset',
-                                '250k_rndm_zinc_drugs_clean_sorted.smi')  # ZINC
+                                'sampled_smiles_2.smi')  # ZINC
         self.dataset = gdb_dataset(path)
 
         ## load scaffold data if necessary
@@ -301,7 +297,7 @@ class MoleculeEnv(gym.Env):
                     flag_zinc_molecule_filter = False
 
                 #print('reward error')
-                # print(self.reward_type)
+                #print(self.reward_type)
                 # print("*" * 50)
 
                 # property rewards
@@ -311,23 +307,23 @@ class MoleculeEnv(gym.Env):
                     # 2. Synthetic accessibility reward. Values naively normalized to [0, 1]. Higher the better
                     sa = -1 * calculateScore(final_mol)
                     reward_sa += (sa + 10) / (10 - 1) * self.sa_ratio
-                    # 3. Logp reward. Higher the better
                     # 4. HBA reward. Higher the better
                     #reward_hba += NumHAcceptors(final_mol) * 1
                     # 5. HBD reward. Higher the better
                     #reward_hbd += NumHDonors(final_mol) * 1
                     # reward_logp += MolLogP(self.mol)/10 * self.logp_ratio
+                    # 3. Logp reward. Higher the better
                     reward_logp += reward_penalized_log_p(final_mol) * self.logp_ratio
                     if self.reward_type == 'logppen':
                         reward_final += reward_penalized_log_p(final_mol)/3
                     elif self.reward_type == 'NLLhood':
                         temp_sml = Chem.MolToSmiles(final_mol, isomericSmiles=True)
-                        temp_sml = Chem.CanonSmiles(temp_sml)
+                        #temp_sml = Chem.CanonSmiles(temp_sml)
                         temp_rw = self._model.likelihood(temp_sml) #'CCC(C)(C)c1cc(N2CCN(Cc3ccccc3)C(=O)C(C)(C#N)C2)c2c(F)ccc(Cl)c2Cl)cc(OC)c1' ##'CC1Cc2nc(c3c(=O)n(C)c(=O)n(C)c3n2)[SH](CC(=O)N(P)C[C@@H]2CCCO2)C1'
-                        print(temp_sml)
+                        #print(temp_sml, temp_rw)
                         reward_final += -temp_rw.item()
-                        #print(reward_final)
-                        #exit()
+                        print(reward_final)
+                        exit()
                     elif self.reward_type == 'HBA_target_1':
                         # reward_final += reward_target(final_mol,target=self.reward_target,ratio=0.5,val_max=2,val_min=-2,func=MolLogP)
                         # reward_final += reward_target_logp(final_mol,target=self.reward_target)
@@ -344,7 +340,7 @@ class MoleculeEnv(gym.Env):
                     elif self.reward_type == 'HBA_logP':
                         reward_final += (reward_hba*1.5 + reward_logp*0.5)
                     elif self.reward_type == 'HBA_HBD':
-                        reward_final += (reward_hba*0.45 + reward_hbd *0.55)
+                        reward_final += (reward_hba*0.5 + reward_hbd *0.5)
                     elif self.reward_type == 'qed':
                         reward_final += reward_qed*2
                     elif self.reward_type == 'qedsa':
@@ -356,8 +352,6 @@ class MoleculeEnv(gym.Env):
                         # reward_final += reward_target(final_mol,target=self.reward_target,ratio=40,val_max=2,val_min=-2,func=rdMolDescriptors.CalcExactMolWt)
                         # reward_final += reward_target_mw(final_mol,target=self.reward_target)
                         reward_final += reward_target_new(final_mol, rdMolDescriptors.CalcExactMolWt,x_start=self.reward_target, x_mid=self.reward_target+25)
-
-
                     elif self.reward_type == 'gan':
                         reward_final = 0
                     else:
@@ -1031,46 +1025,6 @@ class GraphEnv(gym.Env):
     def get_final_graph(self):
         return self.graph
 
-    # TODO(Bowen): check [for featured graph]
-    # def get_observation(self):
-    #     """
-    #
-    #     :return: ob, where ob['adj'] is E with dim b x n x n and ob['node']
-    #     is F with dim 1 x n x m. NB: n = node_num + node_type_num
-    #     """
-    #     n = self.graph.number_of_nodes()
-    #     n_shift = len(self.possible_node_types)  # assume isolated nodes new nodes exist
-    #
-    #     d_n = len(self.possible_node_types)
-    #     F = np.zeros((1, self.max_node, d_n))
-    #
-    #     for node in self.graph.nodes_iter(data=True):
-    #         node_idx = node[0]
-    #         node_type = node[1]['type']
-    #         float_array = (node_type == self.possible_node_types).astype(float)
-    #         assert float_array.sum() != 0
-    #         F[0, node_idx, :] = float_array
-    #     temp = F[0, n:n + n_shift, :]
-    #     F[0, n:n + n_shift, :] = np.eye(n_shift)
-    #
-    #     d_e = len(self.possible_edge_types)
-    #     E = np.zeros((d_e, self.max_node, self.max_node))
-    #     for i in range(d_e):
-    #         E[i, :n + n_shift, :n + n_shift] = np.eye(n + n_shift)
-    #     for e in self.graph.edges_iter(data=True):
-    #         begin_idx = e[0]
-    #         end_idx = e[1]
-    #         edge_type = e[2]['type']
-    #         float_array = (edge_type == self.possible_edge_types).astype(float)
-    #         assert float_array.sum() != 0
-    #         E[:, begin_idx, end_idx] = float_array
-    #         E[:, end_idx, begin_idx] = float_array
-    #     ob = {}
-    #     if self.is_normalize:
-    #         E = self.normalize_adj(E)
-    #     ob['adj'] = E
-    #     ob['node'] = F
-    #     return ob
 
 
     # for graphs without features

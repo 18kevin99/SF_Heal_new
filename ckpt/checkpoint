@@ -1,2 +1,2 @@
-model_checkpoint_path: "molecule_zinc_kevin_nll_test3_0"
-all_model_checkpoint_paths: "molecule_zinc_kevin_nll_test3_0"
+model_checkpoint_path: "molecule_zinc_kevin_test_logp_target_generated_500"
+all_model_checkpoint_paths: "molecule_zinc_kevin_test_logp_target_generated_500"

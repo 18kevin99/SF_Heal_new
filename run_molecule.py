@@ -5,6 +5,7 @@ from baselines.common import set_global_seeds
 from baselines import logger
 from tensorboardX import SummaryWriter
 import os
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import tensorflow.compat.v1 as tf
 
 import gym
@@ -30,7 +31,7 @@ def train(args,seed,writer=None):
     elif args.env=='graph':
         env = GraphEnv()
         env.init(reward_step_total=args.reward_step_total,is_normalize=args.normalize_adj,dataset=args.dataset) # remember call this after gym.make!!
-    print(env.observation_space)
+    #print(env.observation_space)
     def policy_fn(name, ob_space, ac_space):
         return gcn_policy.GCNPolicy(name=name, ob_space=ob_space, ac_space=ac_space, atom_type_num=env.atom_type_num,args=args)
     env.seed(workerseed)
@@ -41,7 +42,7 @@ def train(args,seed,writer=None):
         clip_param=0.2, entcoeff=0.01,
         optim_epochs=8, optim_stepsize=args.lr, optim_batchsize=32,
         gamma=1, lam=0.95,
-        schedule='linear', writer=writer
+        schedule='constant', writer=writer
     )
     env.close()
 
@@ -59,12 +60,12 @@ def molecule_arg_parser():
                         default='molecule')
     parser.add_argument('--seed', help='RNG seed', type=int, default=777)
     parser.add_argument('--num_steps', type=int, default=int(5e7))
-    parser.add_argument('--name', type=str, default='kevin_nll_test3')
-    parser.add_argument('--name_load', type=str, default='test_conditional_4_nll')
+    parser.add_argument('--name', type=str, default='kevin_test_logp_target_generated_2')
+    parser.add_argument('--name_load', type=str, default='kevin_test_logp_target')
     # parser.add_argument('--name_load', type=str, default='test')
     parser.add_argument('--dataset', type=str, default='zinc',help='caveman; grid; ba; zinc; gdb')
     parser.add_argument('--dataset_load', type=str, default='zinc')
-    parser.add_argument('--reward_type', type=str, default='NLLhood',help='logppen;logp_target;qed;qedsa;qed_target;mw_target;gan;NLLhood;HBA_target_')
+    parser.add_argument('--reward_type', type=str, default='logppen',help='logppen;logp_target;qed;qedsa;qed_target;mw_target;gan;NLLhood;HBA_target_')
     parser.add_argument('--reward_target', type=float, default=0.75,help='target reward value')
     parser.add_argument('--logp_ratio', type=float, default=1)
     parser.add_argument('--qed_ratio', type=float, default=1)
@@ -83,7 +84,7 @@ def molecule_arg_parser():
     parser.add_argument('--expert_start', type=int, default=0)
     parser.add_argument('--expert_end', type=int, default=int(1e6))
     parser.add_argument('--save_every', type=int, default=100)
-    parser.add_argument('--load', type=int, default=0)
+    parser.add_argument('--load', type=int, default=1)
     parser.add_argument('--load_step', type=int, default=400)
     # parser.add_argument('--load_step', type=int, default=0)
     parser.add_argument('--curriculum', type=int, default=0)
@@ -108,8 +109,8 @@ def molecule_arg_parser():
     parser.add_argument('--max_action', type=int, default=128) # default 0
     parser.add_argument('--min_action', type=int, default=20) # default 0
     parser.add_argument('--bn', type=int, default=0)
-    parser.add_argument('--name_full',type=str,default='molecule_zinc_test_conditional_4_nll_400')
-    parser.add_argument('--name_full_load',type=str,default='molecule_zinc_test_conditional_4_nll_400')
+    parser.add_argument('--name_full',type=str,default='molecule_zinc_kevin_test_logp_target_400')
+    parser.add_argument('--name_full_load',type=str,default='molecule_zinc_kevin_test_logp_target_400')
 
     return parser
 

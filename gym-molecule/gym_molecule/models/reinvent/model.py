@@ -250,7 +250,6 @@ class Model:
         
         try:
             for step in range(seq_length):
-                
                 if input_string[step]=="$": 
                     break
                 if input_string[step+1] not in self.voc.vocab.keys():
@@ -265,6 +264,10 @@ class Model:
                 logits = logits / temperature
                 log_prob = tnnf.log_softmax(logits, dim=1)
                 inc_token = torch.tensor(self.voc.vocab[input_string[step+1]])
+                #log_prob_step = log_prob[0, input_string[0, step+1]]  # Get log-probability of the actual target character
+                #log_prob_sum += log_prob_step
+                #log_probs += log_prob.item()
+                
                 log_probs += NLLLoss(log_prob, inc_token)
                 #print(pen)
         
